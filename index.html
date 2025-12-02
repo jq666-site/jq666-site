@@ -361,7 +361,7 @@ title: "Home"
       border: 1px solid rgba(56, 189, 248, 0.6);
       background: rgba(15, 23, 42, 0.9);
       font-size: 11px;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
       color: #bfdbfe;
     }
 
@@ -440,6 +440,98 @@ title: "Home"
     .footer a:hover {
       color: var(--accent);
     }
+
+    /* 新增：API 状态 + 文档表单样式 */
+
+    .api-status-text {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .api-status-ok {
+      color: #4ade80;
+    }
+
+    .api-status-error {
+      color: #fb7185;
+    }
+
+    .docs-form {
+      margin-top: 10px;
+      border-top: 1px dashed rgba(148, 163, 184, 0.4);
+      padding-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .docs-form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .docs-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .docs-input,
+    .docs-textarea {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      color: var(--text);
+      font-size: 12px;
+      outline: none;
+      resize: vertical;
+      min-height: 32px;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    }
+
+    .docs-textarea {
+      min-height: 64px;
+    }
+
+    .docs-input:focus,
+    .docs-textarea:focus {
+      border-color: rgba(56, 189, 248, 0.8);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+      background: rgba(15, 23, 42, 0.98);
+    }
+
+    .docs-submit {
+      align-self: flex-start;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(56, 189, 248, 0.9);
+      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, .2), rgba(15, 23, 42, .98));
+      color: #e0f2fe;
+      font-size: 12px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .docs-submit:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.3);
+    }
+
+    .docs-form-msg {
+      font-size: 11px;
+      min-height: 14px;
+    }
+
+    .docs-form-msg-ok {
+      color: #4ade80;
+    }
+
+    .docs-form-msg-error {
+      color: #fb7185;
+    }
   </style>
 </head>
 <body>
@@ -462,6 +554,7 @@ title: "Home"
         </div>
         <nav class="nav-links">
           <a href="#projects">项目</a>
+          <a href="#docs">技术文档</a>
           <a href="#blog">文章</a>
           <a href="#about" class="nav-primary">关于我</a>
         </nav>
@@ -493,6 +586,39 @@ title: "Home"
               <span>欢迎 Star ⭐</span>
             </div>
           </div>
+
+          <!-- 技术文档区块：从 /api/docs 加载 + 提交到 /api/docs -->
+          <section id="docs" class="section">
+            <div class="section-header">
+              <div class="section-title">Tech Docs</div>
+              <div class="section-meta" id="docs-section-meta">
+                云端技术文档 · 来自 Cloudflare KV
+              </div>
+            </div>
+
+            <ul class="blog-list" id="docs-list">
+              <li class="blog-item">
+                <span>正在准备加载技术文档…</span>
+              </li>
+            </ul>
+
+            <form class="docs-form" id="doc-form">
+              <div class="docs-form-row">
+                <label class="docs-label" for="doc-title">标题</label>
+                <input id="doc-title" class="docs-input" type="text" placeholder="例如：Cloudflare Workers + KV 轻量后端实践" />
+              </div>
+              <div class="docs-form-row">
+                <label class="docs-label" for="doc-content">内容</label>
+                <textarea id="doc-content" class="docs-textarea" placeholder="写一点技术笔记，最终会通过 /api/docs 保存到 KV。"></textarea>
+              </div>
+              <div class="docs-form-row">
+                <label class="docs-label" for="doc-tags">标签（可选，英文逗号分隔）</label>
+                <input id="doc-tags" class="docs-input" type="text" placeholder="例如：cloudflare, worker, kv" />
+              </div>
+              <button type="submit" class="docs-submit">保存到云端</button>
+              <div class="docs-form-msg" id="doc-form-msg"></div>
+            </form>
+          </section>
 
           <!-- 项目区块 -->
           <section id="projects" class="section">
@@ -567,6 +693,10 @@ title: "Home"
             <span class="badge-pulse"></span>
             <span>现在 · 正在建设中</span>
           </div>
+          <div id="api-status" class="api-status-text">
+            API_BASE 未配置，目前只展示静态页面。
+          </div>
+
           <div class="side-title">关于我</div>
           <p class="side-sub">
             这里可以写一句简单的自我介绍，例如：
@@ -603,5 +733,207 @@ title: "Home"
       </main>
     </div>
   </div>
+
+  <script>
+    // 这里改成你的 Cloudflare Worker 基础地址（不要带最后的 /）
+    // 例如： const API_BASE = "";
+    const API_BASE = "https://lingering-resonance-6555.aa1348769445.workers.dev";
+
+    function getApiUrl(path) {
+      if (!API_BASE) return null;
+      return API_BASE.replace(/\/+$/, "") + path;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initApiStatus();
+      initDocsSection();
+    });
+
+    async function initApiStatus() {
+      const statusEl = document.getElementById("api-status");
+      if (!statusEl) return;
+
+      if (!API_BASE) {
+        statusEl.textContent = "API_BASE 未配置，目前只展示静态页面。";
+        statusEl.classList.remove("api-status-ok", "api-status-error");
+        return;
+      }
+
+      try {
+        const url = getApiUrl("/api/test");
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data.ok) {
+          statusEl.textContent = "已连接 Cloudflare Worker · " + (data.time || "");
+          statusEl.classList.add("api-status-ok");
+          statusEl.classList.remove("api-status-error");
+        } else {
+          throw new Error("响应异常");
+        }
+      } catch (err) {
+        statusEl.textContent = "无法连接云端服务，请检查 API_BASE 或 Worker 配置。";
+        statusEl.classList.add("api-status-error");
+        statusEl.classList.remove("api-status-ok");
+      }
+    }
+
+    function initDocsSection() {
+      const listEl = document.getElementById("docs-list");
+      const formEl = document.getElementById("doc-form");
+      const metaEl = document.getElementById("docs-section-meta");
+
+      if (!listEl) return;
+
+      if (!API_BASE) {
+        if (metaEl) {
+          metaEl.textContent = "云端技术文档 · API_BASE 未配置，仅展示静态表单";
+        }
+        listEl.innerHTML = '<li class="blog-item"><span>未配置 API_BASE，暂不从云端加载技术文档。</span></li>';
+        return;
+      }
+
+      if (metaEl) {
+        metaEl.textContent = "云端技术文档 · 来自 /api/docs";
+      }
+
+      loadDocs();
+
+      if (formEl) {
+        formEl.addEventListener("submit", onDocFormSubmit);
+      }
+    }
+
+    async function loadDocs() {
+      const listEl = document.getElementById("docs-list");
+      if (!listEl) return;
+
+      listEl.innerHTML = '<li class="blog-item"><span>正在从 /api/docs 加载技术文档…</span></li>';
+
+      try {
+        const url = getApiUrl("/api/docs?limit=20");
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!data || !data.ok) {
+          throw new Error(data && data.error ? data.error : "未知错误");
+        }
+
+        const items = Array.isArray(data.items) ? data.items : [];
+
+        if (!items.length) {
+          listEl.innerHTML = '<li class="blog-item"><span>暂时还没有技术文档，可以在下面的表单里新建一篇。</span></li>';
+          return;
+        }
+
+        listEl.innerHTML = "";
+        items.forEach((item) => {
+          const li = document.createElement("li");
+          li.className = "blog-item";
+
+          const title = document.createElement("div");
+          const titleText = document.createElement("span");
+          titleText.textContent = item.title || "(未命名文档)";
+          title.appendChild(titleText);
+
+          const meta = document.createElement("div");
+          meta.className = "blog-meta";
+          const created = item.createdAt
+            ? new Date(item.createdAt).toISOString().slice(0, 10)
+            : "";
+          const tags = Array.isArray(item.tags) ? item.tags.filter(Boolean) : [];
+
+          meta.textContent = created ? created : "";
+          if (tags.length) {
+            meta.textContent += (meta.textContent ? " · " : "") + tags.join(" · ");
+          }
+
+          li.appendChild(title);
+          li.appendChild(meta);
+          listEl.appendChild(li);
+        });
+      } catch (err) {
+        listEl.innerHTML =
+          '<li class="blog-item"><span>加载失败：' +
+          (err.message || "未知错误") +
+          "</span></li>";
+      }
+    }
+
+    async function onDocFormSubmit(event) {
+      event.preventDefault();
+      const titleEl = document.getElementById("doc-title");
+      const contentEl = document.getElementById("doc-content");
+      const tagsEl = document.getElementById("doc-tags");
+      const msgEl = document.getElementById("doc-form-msg");
+
+      if (!API_BASE) {
+        if (msgEl) {
+          msgEl.textContent = "未配置 API_BASE，无法提交到云端。";
+          msgEl.className = "docs-form-msg docs-form-msg-error";
+        }
+        return;
+      }
+
+      const title = (titleEl.value || "").trim();
+      const content = (contentEl.value || "").trim();
+      const rawTags = (tagsEl.value || "").trim();
+
+      if (!title || !content) {
+        if (msgEl) {
+          msgEl.textContent = "标题和内容不能为空。";
+          msgEl.className = "docs-form-msg docs-form-msg-error";
+        }
+        return;
+      }
+
+      const tags = rawTags
+        ? rawTags.split(",").map((t) => t.trim()).filter(Boolean)
+        : [];
+
+      if (msgEl) {
+        msgEl.textContent = "正在提交到 /api/docs…";
+        msgEl.className = "docs-form-msg";
+      }
+
+      try {
+        const url = getApiUrl("/api/docs");
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title,
+            content,
+            tags,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!data || !data.ok) {
+          throw new Error(data && data.error ? data.error : "提交失败");
+        }
+
+        if (msgEl) {
+          msgEl.textContent = "已保存到云端。";
+          msgEl.className = "docs-form-msg docs-form-msg-ok";
+        }
+
+        // 清空表单
+        titleEl.value = "";
+        contentEl.value = "";
+        tagsEl.value = "";
+
+        // 重新加载文档列表
+        loadDocs();
+      } catch (err) {
+        if (msgEl) {
+          msgEl.textContent = "提交失败：" + (err.message || "未知错误");
+          msgEl.className = "docs-form-msg docs-form-msg-error";
+        }
+      }
+    }
+  </script>
 </body>
 </html>
