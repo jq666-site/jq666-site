@@ -1,0 +1,541 @@
+---
+layout: null
+title: "Write"
+---
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>发文档 · {{ site.title | default: "JQ’s Space" }}</title>
+  <meta name="description" content="在这里发布新的 Docs 文档。">
+
+  <!-- Quill 富文本样式 -->
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #050816;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.18);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: rgba(148, 163, 184, 0.35);
+      --radius-xl: 18px;
+      --shadow-soft: 0 22px 45px rgba(15, 23, 42, 0.75);
+      --transition: 0.25s ease;
+    }
+
+    body.light-theme {
+      --bg: #f3f4f6;
+      --bg-card: #ffffff;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.18);
+      --text: #111827;
+      --muted: #6b7280;
+      --border: rgba(156, 163, 175, 0.55);
+      --shadow-soft: 0 18px 35px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body { width: 100%; }
+
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "PingFang SC", "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, .18), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(129, 140, 248, .18), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      padding: 32px 16px;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+      border-radius: 24px;
+      background:
+        linear-gradient(135deg, rgba(148, 163, 184, 0.25), transparent),
+        radial-gradient(circle at top, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.96));
+      padding: 1px;
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      overflow: visible;
+    }
+
+    body.light-theme .shell {
+      background:
+        linear-gradient(135deg, rgba(209, 213, 219, 0.6), transparent),
+        radial-gradient(circle at top, #ffffff, #e5e7eb);
+    }
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: -120px;
+      opacity: .18;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(56, 189, 248, .4), transparent 55%),
+        radial-gradient(circle at 80% 100%, rgba(147, 51, 234, .42), transparent 55%);
+      filter: blur(38px);
+      z-index: -1;
+    }
+
+    .card {
+      border-radius: 24px;
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.98));
+      padding: 22px 22px 20px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    body.light-theme .card {
+      background: #ffffff;
+      border-color: rgba(209, 213, 219, 0.8);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      gap: 12px;
+    }
+
+    .nav-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition);
+      background: transparent;
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .btn-outline {
+      border-color: rgba(148, 163, 184, 0.7);
+    }
+
+    .btn-outline:hover {
+      background: rgba(15, 23, 42, 0.85);
+      color: var(--text);
+    }
+
+    body.light-theme .btn-outline:hover {
+      background: rgba(243, 244, 246, 0.9);
+    }
+
+    .btn-primary {
+      border-color: rgba(56, 189, 248, 0.8);
+      background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.25), rgba(15, 23, 42, 0.96));
+      color: #e0f2fe;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .form {
+      margin-top: 4px;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .form-input {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.95);
+      color: var(--text);
+      font-size: 13px;
+      padding: 7px 9px;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    body.light-theme .form-input {
+      background: #f9fafb;
+      border-color: rgba(209, 213, 219, 0.9);
+      color: #111827;
+    }
+
+    .form-input:focus {
+      border-color: rgba(56, 189, 248, 0.8);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+    }
+
+    .modal-tip {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .form-row-inline {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .form-row-inline .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    /* 富文本编辑器 */
+    .rich-editor {
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.95);
+      padding: 6px 6px 8px;
+    }
+
+    body.light-theme .rich-editor {
+      background: #f9fafb;
+      border-color: rgba(209, 213, 219, 0.9);
+    }
+
+    .rich-editor .ql-toolbar {
+      border-radius: 8px 8px 0 0;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      border-bottom: none;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    body.light-theme .rich-editor .ql-toolbar {
+      background: #f3f4f6;
+      border-color: rgba(209, 213, 219, 0.9);
+    }
+
+    .rich-editor .ql-container {
+      border-radius: 0 0 8px 8px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      border-top: none;
+      background: transparent;
+      min-height: 200px;
+      max-height: 480px;
+    }
+
+    body.light-theme .rich-editor .ql-container {
+      border-color: rgba(209, 213, 219, 0.9);
+    }
+
+    .rich-editor .ql-editor {
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 200px;
+      color: var(--text);
+    }
+
+    body.light-theme .rich-editor .ql-editor {
+      color: #111827;
+    }
+
+    .footer-tip {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      z-index: 60;
+      right: 16px;
+      bottom: 16px;
+      background: rgba(15, 23, 42, 0.96);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.8);
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    body.light-theme .toast {
+      background: #ffffff;
+      color: #111827;
+      border-color: rgba(209, 213, 219, 0.9);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.24);
+    }
+
+    .toast.show {
+      display: inline-flex;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="card">
+      <header class="nav">
+        <div class="nav-left">
+          <div class="title">发文档到 Docs</div>
+          <div class="sub">在这里编辑内容并提交到 Cloudflare Workers 存储</div>
+        </div>
+        <div class="nav-actions">
+          <a class="btn btn-outline" href="{{ '/' | relative_url }}">← 返回首页</a>
+          <button type="button" class="btn btn-outline" id="btn-theme-toggle">
+            <span>🌓</span><span id="theme-toggle-text">主题：深色</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="form">
+        <div class="form-group">
+          <label class="form-label" for="doc-title-input">标题</label>
+          <input id="doc-title-input" class="form-input" placeholder="例如：Cloudflare Workers + KV 轻量后端实践" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="doc-tags-input">标签（用逗号分隔，可选）</label>
+          <input id="doc-tags-input" class="form-input" placeholder="cloudflare, worker, kv" />
+          <div class="modal-tip">
+            例如：<code>flutter</code>、<code>backend</code>、<code>notes</code>。
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">内容（支持基本富文本）</label>
+          <div class="rich-editor">
+            <div id="doc-editor"></div>
+          </div>
+          <div class="modal-tip">
+            提示：目前支持基础格式（加粗、斜体、标题、列表、代码块等），提交时会保存为 HTML。
+          </div>
+        </div>
+
+        <div class="form-row-inline">
+          <div class="form-group">
+            <label class="form-label" for="doc-code-input">验证码</label>
+            <input id="doc-code-input" class="form-input" placeholder="固定验证码" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">&nbsp;</label>
+            <div class="modal-tip">
+              验证码由后端接口校验，此处只是收集输入并一起提交。
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="btn btn-outline" id="btn-reset">清空</button>
+          <button type="button" class="btn btn-primary" id="btn-submit">
+            <span id="btn-submit-text">提交文档</span>
+          </button>
+        </div>
+
+        <div class="footer-tip">
+          <span>提交成功后会出现在首页的 Docs 列表中。</span>
+          <span>接口地址基于与你首页相同的 <code>API_BASE</code>。</span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <span id="toast-text">提示</span>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+  <script>
+    // === API 地址，与首页保持一致 ===
+    const API_BASE = window.DOCS_API_BASE || "https://lingering-resonance-6555.aa1348769445.workers.dev";
+    const API_DOCS = API_BASE + "/api/docs";
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      const text = document.getElementById("toast-text");
+      if (!toast || !text) return;
+      text.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2000);
+    }
+
+    function applyThemeFromStorage() {
+      const saved = localStorage.getItem("jq_theme") || "dark";
+      const body = document.body;
+      const label = document.getElementById("theme-toggle-text");
+      if (saved === "light") {
+        body.classList.add("light-theme");
+        label && (label.textContent = "主题：浅色");
+      } else {
+        body.classList.remove("light-theme");
+        label && (label.textContent = "主题：深色");
+      }
+    }
+
+    function setupThemeToggle() {
+      const btn = document.getElementById("btn-theme-toggle");
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        const body = document.body;
+        const label = document.getElementById("theme-toggle-text");
+        const nowLight = !body.classList.contains("light-theme");
+        if (nowLight) {
+          body.classList.add("light-theme");
+          localStorage.setItem("jq_theme", "light");
+          label && (label.textContent = "主题：浅色");
+        } else {
+          body.classList.remove("light-theme");
+          localStorage.setItem("jq_theme", "dark");
+          label && (label.textContent = "主题：深色");
+        }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      applyThemeFromStorage();
+      setupThemeToggle();
+
+      const titleEl = document.getElementById("doc-title-input");
+      const tagsEl = document.getElementById("doc-tags-input");
+      const codeEl = document.getElementById("doc-code-input");
+      const btnSubmit = document.getElementById("btn-submit");
+      const btnSubmitText = document.getElementById("btn-submit-text");
+      const btnReset = document.getElementById("btn-reset");
+
+      const quill = new Quill("#doc-editor", {
+        theme: "snow",
+        modules: {
+          toolbar: [
+            ["bold", "italic", "underline", "strike"],
+            [{ header: [3, 4, false] }],
+            [{ list: "ordered" }, { list: "bullet" }],
+            ["code-block", "link"]
+          ]
+        }
+      });
+
+      btnReset.addEventListener("click", () => {
+        titleEl.value = "";
+        tagsEl.value = "";
+        codeEl.value = "";
+        quill.setContents([]);
+        showToast("已清空");
+      });
+
+      btnSubmit.addEventListener("click", async () => {
+        const title = (titleEl.value || "").trim();
+        const tagsRaw = (tagsEl.value || "").trim();
+        const content = (quill.root.innerHTML || "").trim();
+        const verifyCode = (codeEl.value || "").trim();
+
+        if (!title) {
+          showToast("标题不能为空");
+          titleEl.focus();
+          return;
+        }
+        if (!content) {
+          showToast("内容不能为空");
+          quill.focus();
+          return;
+        }
+        if (!verifyCode) {
+          showToast("请输入验证码");
+          codeEl.focus();
+          return;
+        }
+
+        let tags = [];
+        if (tagsRaw) {
+          tags = tagsRaw
+            .split(/[,，]/)
+            .map((t) => t.trim())
+            .filter(Boolean);
+        }
+
+        const payload = { title, content, tags, verifyCode };
+
+        btnSubmit.disabled = true;
+        btnSubmitText.textContent = "提交中…";
+
+        try {
+          const res = await fetch(API_DOCS, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (!data.ok) {
+            showToast(data.error || "提交失败");
+          } else {
+            showToast("提交成功");
+            titleEl.value = "";
+            tagsEl.value = "";
+            codeEl.value = "";
+            quill.setContents([]);
+          }
+        } catch (e) {
+          console.error(e);
+          showToast("请求异常，请稍后再试");
+        } finally {
+          btnSubmit.disabled = false;
+          btnSubmitText.textContent = "提交文档";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
